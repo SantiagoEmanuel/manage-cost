@@ -1,0 +1,14 @@
+{
+  "name": "manage-cost",
+  "version": "0.0.0",
+  "description": "Proyecto de gestión de recursos y gastos",
+  "scripts": {
+    "dev": "pnpm dev -r"
+  },
+  "author": {
+    "name": "Santiago Mustafa",
+    "email": "santiagomustafa3@gmail.com",
+    "url": "https://github.com/santiagoemanuel"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
