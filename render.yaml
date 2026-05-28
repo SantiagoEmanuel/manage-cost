@@ -5,9 +5,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: server
-    buildCommand: pnpm install && pnpm build
-    startCommand: node dist/server.js
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter server build
+    startCommand: node server/dist/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -36,9 +35,8 @@ services:
     runtime: static
     region: oregon
     plan: free
-    rootDir: apps/web
-    buildCommand: pnpm install && pnpm build
-    staticPublishPath: dist
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter web build
+    staticPublishPath: apps/web/dist
     headers:
       - path: /*
         name: X-Frame-Options
