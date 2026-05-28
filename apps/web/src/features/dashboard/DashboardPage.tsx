@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { PageMeta } from '@/shared/components/PageMeta';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, CreditCard, Users, Plus } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/auth.store';
@@ -44,6 +45,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageMeta title="Dashboard" noindex />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

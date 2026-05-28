@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { env } from './config/env.js';
+import { corsOrigins } from './config/env.js';
 import { errorHandler } from './shared/errors/error-handler.js';
 import { RATE_LIMITS } from './shared/constants/index.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
@@ -17,7 +17,18 @@ const app: Application = express();
 
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 app.use(rateLimit({ ...RATE_LIMITS.GENERAL, standardHeaders: true, legacyHeaders: false }));

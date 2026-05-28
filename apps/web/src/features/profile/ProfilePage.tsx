@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { PageMeta } from '@/shared/components/PageMeta';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,6 +71,7 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
+      <PageMeta title="Mi perfil" noindex />
       <div>
         <h1 className="text-xl font-bold text-slate-100">Mi perfil</h1>
         <p className="text-sm text-slate-500 mt-0.5">{profile?.email}</p>

@@ -8,6 +8,7 @@ import { useAuthStore } from '../auth.store';
 import { Input } from '@/shared/components/Input';
 import { Button } from '@/shared/components/Button';
 import { toast } from '@/shared/components/Toast';
+import { PageMeta } from '@/shared/components/PageMeta';
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -31,6 +32,11 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+      <PageMeta
+        title="Iniciar sesión"
+        description="Ingresá a tu cuenta de ManageCost para controlar tus gastos personales y compartidos."
+        canonicalPath="/login"
+      />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-violet-600 mb-4">
