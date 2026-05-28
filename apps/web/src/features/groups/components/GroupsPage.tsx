@@ -18,7 +18,7 @@ import { z } from 'zod';
 const schema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
-  currency: z.string().default('USD'),
+  currency: z.string().min(1),
 });
 type FormData = z.infer<typeof schema>;
 

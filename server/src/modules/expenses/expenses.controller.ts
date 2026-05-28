@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ExpensesService } from './expenses.service.js';
+import { getValidatedQuery } from '../../shared/middlewares/validate.middleware.js';
 import type { AuthenticatedRequest } from '../../shared/types/index.js';
+import type { ExpenseQuery } from './expenses.schema.js';
 
 const service = new ExpensesService();
 
@@ -11,7 +13,8 @@ function param(req: Request, key: string): string {
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { user } = req as AuthenticatedRequest;
-    const result = await service.list(user.id, req.query as never);
+    const query = getValidatedQuery<ExpenseQuery>(res);
+    const result = await service.list(user.id, query);
     res.json({ success: true, ...result });
   } catch (err) { next(err); }
 }
