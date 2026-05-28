@@ -59,4 +59,6 @@ export const creditInstallments = sqliteTable('credit_installments', {
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 export type ExpenseSplit = typeof expenseSplits.$inferSelect;
+export type NewExpenseSplit = typeof expenseSplits.$inferInsert;
 export type CreditInstallment = typeof creditInstallments.$inferSelect;
+export type NewCreditInstallment = typeof creditInstallments.$inferInsert;
