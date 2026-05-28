@@ -4,7 +4,9 @@
   "description": "Proyecto de gestión de recursos y gastos",
   "scripts": {
     "dev": "pnpm -r dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "server:build": "cd ./server && pnpm build",
+    "server:start": "cd ./server && pnpm start"
   },
   "author": {
     "name": "Santiago Mustafa",
