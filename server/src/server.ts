@@ -1,11 +1,8 @@
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './shared/logger/index.js';
-import { runMigrations } from './db/migrate.js';
 
-async function start(): Promise<void> {
-  await runMigrations();
-
+function start(): void {
   const server = app.listen(env.PORT, () => {
     logger.info(`Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
   });
@@ -19,7 +16,4 @@ async function start(): Promise<void> {
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-start().catch((err) => {
-  logger.error({ err }, 'Failed to start server');
-  process.exit(1);
-});
+start();
