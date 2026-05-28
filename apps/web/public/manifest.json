@@ -1,0 +1,29 @@
+{
+  "name": "ManageCost — Gestión de gastos",
+  "short_name": "ManageCost",
+  "description": "Controlá tus gastos personales y compartidos. Dividí cuentas, llevá el balance y liquidá deudas de forma simple.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#7c3aed",
+  "lang": "es-AR",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "label": "ManageCost Dashboard"
+    }
+  ]
+}

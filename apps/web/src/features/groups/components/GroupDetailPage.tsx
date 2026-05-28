@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { PageMeta } from '@/shared/components/PageMeta';
 import { ArrowLeft, Plus, UserPlus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { groupsApi } from '../api/groups.api';
 import { useAuthStore } from '@/features/auth/auth.store';
@@ -71,6 +72,7 @@ export function GroupDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageMeta title={group.name} noindex />
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/groups')} className="text-slate-500 hover:text-slate-200 transition-colors">
           <ArrowLeft className="h-5 w-5" />

@@ -7,6 +7,7 @@ import { authApi } from '../api/auth.api';
 import { Input } from '@/shared/components/Input';
 import { Button } from '@/shared/components/Button';
 import { toast } from '@/shared/components/Toast';
+import { PageMeta } from '@/shared/components/PageMeta';
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -30,6 +31,11 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+      <PageMeta
+        title="Crear cuenta"
+        description="Registrate gratis en ManageCost y empezá a controlar tus gastos personales y compartidos con amigos y familia."
+        canonicalPath="/register"
+      />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-violet-600 mb-4">

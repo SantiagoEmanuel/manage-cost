@@ -12,6 +12,7 @@ const envSchema = z.object({
   REFRESH_TOKEN_SECRET: z.string().min(32, 'REFRESH_TOKEN_SECRET must be at least 32 chars'),
   ACCESS_TOKEN_EXPIRES_IN: z.string().default('15m'),
   REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
+  /** Comma-separated allowed origins. e.g. "http://localhost:5173,https://gastos.santiagomustafa.com.ar" */
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 });
 
@@ -25,3 +26,6 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = typeof env;
+
+/** Parsed list of allowed CORS origins. */
+export const corsOrigins: string[] = env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);

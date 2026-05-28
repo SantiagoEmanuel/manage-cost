@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PageMeta } from '@/shared/components/PageMeta';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, Users, ChevronRight } from 'lucide-react';
@@ -35,6 +36,7 @@ export function GroupsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageMeta title="Grupos" noindex />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-100">Grupos</h1>

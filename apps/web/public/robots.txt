@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+
+# Páginas privadas (requieren autenticación)
+Disallow: /dashboard
+Disallow: /expenses
+Disallow: /groups
+Disallow: /settlements
+Disallow: /profile
+Disallow: /api/
+
+Sitemap: https://gastos.santiagomustafa.com.ar/sitemap.xml

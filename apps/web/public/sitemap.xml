@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://gastos.santiagomustafa.com.ar/</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es-AR" href="https://gastos.santiagomustafa.com.ar/"/>
+  </url>
+
+  <url>
+    <loc>https://gastos.santiagomustafa.com.ar/login</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es-AR" href="https://gastos.santiagomustafa.com.ar/login"/>
+  </url>
+
+  <url>
+    <loc>https://gastos.santiagomustafa.com.ar/register</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es-AR" href="https://gastos.santiagomustafa.com.ar/register"/>
+  </url>
+
+</urlset>
