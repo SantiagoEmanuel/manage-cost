@@ -20,9 +20,9 @@ const inviteSchema = z.object({ email: z.string().email('Email inválido') });
 const expenseSchema = z.object({
   description: z.string().min(1),
   amount: z.coerce.number().positive(),
-  currency: z.string().default('USD'),
-  category: z.string().default('general'),
-  paymentMethod: z.string().default('cash'),
+  currency: z.string().min(1),
+  category: z.string().min(1),
+  paymentMethod: z.string().min(1),
   date: z.string().min(1),
   notes: z.string().optional(),
 });

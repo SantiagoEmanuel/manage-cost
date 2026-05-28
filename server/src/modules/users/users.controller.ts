@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { UsersService } from './users.service.js';
+import { getValidatedQuery } from '../../shared/middlewares/validate.middleware.js';
 import type { AuthenticatedRequest } from '../../shared/types/index.js';
 
 const service = new UsersService();
@@ -31,7 +32,7 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
 export async function searchUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { user } = req as AuthenticatedRequest;
-    const q = String(req.query['q'] ?? '');
+    const { q } = getValidatedQuery<{ q: string }>(res);
     const results = await service.searchUsers(q, user.id);
     res.json({ success: true, data: results });
   } catch (err) { next(err); }

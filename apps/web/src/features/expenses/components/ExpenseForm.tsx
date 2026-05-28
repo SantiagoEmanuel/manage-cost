@@ -12,7 +12,7 @@ const schema = z.object({
   category: z.string().min(1),
   paymentMethod: z.string().min(1),
   date: z.string().min(1, 'Fecha requerida'),
-  currency: z.string().default('USD'),
+  currency: z.string().min(1),
   notes: z.string().optional(),
   installments: z.coerce.number().int().min(1).max(60).optional(),
 });
