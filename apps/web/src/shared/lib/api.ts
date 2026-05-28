@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.DEV ? "/api" : "https://api.santiagomustafa.com.ar/",
+  baseURL: "/api",
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
@@ -25,8 +25,8 @@ api.interceptors.response.use(
     if (status === 401 && original && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
-        refreshPromise ??= axios
-          .post("/api/auth/refresh", {}, { withCredentials: true })
+        refreshPromise ??= api
+          .post("/auth/refresh", {}, { withCredentials: true })
           .then(() => undefined);
         await refreshPromise;
         return api(original);
