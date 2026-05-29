@@ -187,12 +187,19 @@ export class GroupsService {
       byCurrency.set(d.currency, bucket);
     }
 
-    // Clear unsettled debts; skipped ids belong to currencies we can't simplify.
-    const skippedDebtIds = new Set(await this.repo.clearUnsettledGroupDebts(groupId));
+    // Determine which currencies have any settled debt BEFORE deleting anything;
+    // those currencies are skipped entirely (left untouched).
+    const settledDebtIds = new Set(await this.repo.findSettledDebtIds(groupId));
     const skippedCurrencies = new Set<string>();
     for (const d of groupDebts) {
-      if (skippedDebtIds.has(d.id)) skippedCurrencies.add(d.currency);
+      if (settledDebtIds.has(d.id)) skippedCurrencies.add(d.currency);
     }
+
+    // Only clear unsettled debts in currencies we will actually rebuild.
+    const currenciesToSimplify = new Set(
+      [...byCurrency.keys()].filter(c => !skippedCurrencies.has(c)),
+    );
+    await this.repo.clearUnsettledGroupDebts(groupId, currenciesToSimplify);
 
     let simplified = 0;
     for (const [currency, bucket] of byCurrency) {

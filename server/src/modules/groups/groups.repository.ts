@@ -112,21 +112,31 @@ export class GroupsRepository {
   }
 
   /**
-   * Deletes non-paid debts that have no settlement children.
-   * Returns the ids of debts that could NOT be deleted (had settlements).
+   * Returns the ids of non-paid debts that have settlement children
+   * (i.e. cannot be safely deleted).
    */
-  async clearUnsettledGroupDebts(groupId: string): Promise<string[]> {
+  async findSettledDebtIds(groupId: string): Promise<string[]> {
     const groupDebts = await this.getGroupDebts(groupId);
-    const skipped: string[] = [];
+    const settled: string[] = [];
     for (const d of groupDebts) {
       const children = await db.query.settlements.findMany({ where: eq(settlements.debtId, d.id) });
-      if (children.length > 0) {
-        skipped.push(d.id);
-        continue;
-      }
+      if (children.length > 0) settled.push(d.id);
+    }
+    return settled;
+  }
+
+  /**
+   * Deletes non-paid, settlement-free debts whose currency is in `currencies`.
+   * Debts in any other currency are left untouched.
+   */
+  async clearUnsettledGroupDebts(groupId: string, currencies: Set<string>): Promise<void> {
+    const groupDebts = await this.getGroupDebts(groupId);
+    for (const d of groupDebts) {
+      if (!currencies.has(d.currency)) continue;
+      const children = await db.query.settlements.findMany({ where: eq(settlements.debtId, d.id) });
+      if (children.length > 0) continue;
       await db.delete(debts).where(eq(debts.id, d.id));
     }
-    return skipped;
   }
 
   async updateGroupExpense(expenseId: string, data: { description?: string | undefined; currency?: string | undefined; date?: string | undefined }) {
