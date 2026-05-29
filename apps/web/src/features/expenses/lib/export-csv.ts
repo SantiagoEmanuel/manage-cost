@@ -7,13 +7,12 @@ import type { Expense } from '@/shared/types';
 export async function fetchAllExpensesForMonth(from: string, to: string): Promise<Expense[]> {
   const all: Expense[] = [];
   let page = 1;
-  let totalPages = 1;
-  do {
+  for (;;) {
     const res = await expensesApi.list({ page, limit: 100, from, to });
     all.push(...res.data);
-    totalPages = res.pagination.totalPages;
+    if (page >= res.pagination.totalPages) break;
     page++;
-  } while (page <= totalPages);
+  }
   return all;
 }
 
