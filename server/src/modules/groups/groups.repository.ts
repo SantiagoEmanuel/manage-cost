@@ -1,6 +1,6 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, ne } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { groups, groupMembers, expenses, expenseSplits, users, debts } from '../../db/schema/index.js';
+import { groups, groupMembers, expenses, expenseSplits, users, debts, settlements } from '../../db/schema/index.js';
 import type { NewGroup, NewGroupMember, NewExpense, NewExpenseSplit } from '../../db/schema/index.js';
 
 
@@ -103,6 +103,30 @@ export class GroupsRepository {
     } else {
       await db.insert(debts).values({ ...data, status: 'pending' });
     }
+  }
+
+  async getGroupDebts(groupId: string) {
+    return db.query.debts.findMany({
+      where: and(eq(debts.groupId, groupId), ne(debts.status, 'paid')),
+    });
+  }
+
+  /**
+   * Deletes non-paid debts that have no settlement children.
+   * Returns the ids of debts that could NOT be deleted (had settlements).
+   */
+  async clearUnsettledGroupDebts(groupId: string): Promise<string[]> {
+    const groupDebts = await this.getGroupDebts(groupId);
+    const skipped: string[] = [];
+    for (const d of groupDebts) {
+      const children = await db.query.settlements.findMany({ where: eq(settlements.debtId, d.id) });
+      if (children.length > 0) {
+        skipped.push(d.id);
+        continue;
+      }
+      await db.delete(debts).where(eq(debts.id, d.id));
+    }
+    return skipped;
   }
 
   async updateGroupExpense(expenseId: string, data: { description?: string | undefined; currency?: string | undefined; date?: string | undefined }) {

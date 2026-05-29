@@ -29,3 +29,8 @@ export type Env = typeof env;
 
 /** Parsed list of allowed CORS origins. */
 export const corsOrigins: string[] = env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+
+/** Web Push (VAPID) configuration. Optional — the app boots without them. */
+export const vapidPublicKey: string = process.env.VAPID_PUBLIC_KEY ?? '';
+export const vapidPrivateKey: string = process.env.VAPID_PRIVATE_KEY ?? '';
+export const vapidSubject: string = process.env.VAPID_SUBJECT ?? 'mailto:admin@santiagomustafa.com.ar';

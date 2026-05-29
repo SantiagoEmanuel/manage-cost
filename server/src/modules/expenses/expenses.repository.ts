@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, desc, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { expenses, creditInstallments } from '../../db/schema/index.js';
 import type { NewExpense } from '../../db/schema/index.js';
@@ -15,6 +15,9 @@ export class ExpensesRepository {
     if (query.paymentMethod) conditions.push(eq(expenses.paymentMethod, query.paymentMethod));
     if (query.from) conditions.push(gte(expenses.date, query.from));
     if (query.to) conditions.push(lte(expenses.date, query.to));
+    if (query.search) {
+      conditions.push(sql`${expenses.description} LIKE ${'%' + query.search.replace(/[%_\\]/g, '\\$&') + '%'} ESCAPE '\\'`);
+    }
 
     const offset = (query.page - 1) * query.limit;
     const rows = await db.select().from(expenses)
@@ -61,5 +64,17 @@ export class ExpensesRepository {
   async findAllByUser(userId: string) {
     return db.select().from(expenses)
       .where(and(eq(expenses.payerId, userId), isNull(expenses.deletedAt)));
+  }
+
+  async findMonthlyHistory(userId: string, months: number): Promise<{ month: string; total: number }[]> {
+    const rows = await db.all<{ month: string; total: number }>(sql`
+      SELECT substr(date, 1, 7) as month, SUM(amount) as total
+      FROM expenses
+      WHERE payer_id = ${userId} AND is_personal = 1 AND deleted_at IS NULL
+        AND date >= date('now', ${'-' + (months - 1) + ' months'}, 'start of month')
+      GROUP BY substr(date, 1, 7)
+      ORDER BY month ASC
+    `);
+    return rows;
   }
 }

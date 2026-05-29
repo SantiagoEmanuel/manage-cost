@@ -13,5 +13,16 @@ export const fixedExpenses = sqliteTable('fixed_expenses', {
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
 });
 
+export const fixedExpenseApplications = sqliteTable('fixed_expense_applications', {
+  id: text('id').primaryKey(),
+  fixedExpenseId: text('fixed_expense_id').notNull(),
+  userId: text('user_id').notNull(),
+  appliedMonth: text('applied_month').notNull(),
+  expenseId: text('expense_id').notNull(),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+});
+
 export type FixedExpense = typeof fixedExpenses.$inferSelect;
 export type NewFixedExpense = typeof fixedExpenses.$inferInsert;
+export type FixedExpenseApplication = typeof fixedExpenseApplications.$inferSelect;
+export type NewFixedExpenseApplication = typeof fixedExpenseApplications.$inferInsert;
