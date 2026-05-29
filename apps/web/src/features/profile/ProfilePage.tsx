@@ -3,7 +3,10 @@ import { PageMeta } from '@/shared/components/PageMeta';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { api } from '@/shared/lib/api';
+import { authApi } from '@/features/auth/api/auth.api';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { queryClient } from '@/shared/lib/query-client';
 import { Card, CardHeader, CardTitle } from '@/shared/components/Card';
@@ -30,6 +33,17 @@ type PasswordData = z.infer<typeof passwordSchema>;
 
 export function ProfilePage() {
   const setUser = useAuthStore(s => s.setUser);
+  const logout = useAuthStore(s => s.logout);
+  const navigate = useNavigate();
+
+  const { mutate: doLogout, isPending: loggingOut } = useMutation({
+    mutationFn: authApi.logout,
+    onSettled: () => {
+      logout();
+      queryClient.clear();
+      navigate('/login');
+    },
+  });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['users', 'me'],
@@ -121,6 +135,16 @@ export function ProfilePage() {
           <Input label="Nueva contraseña" type="password" error={passErrors.newPassword?.message} {...regPass('newPassword')} />
           <Button type="submit" loading={changePassword.isPending} variant="secondary">Cambiar contraseña</Button>
         </form>
+      </Card>
+
+      {/* Logout */}
+      <Card>
+        <CardHeader><CardTitle>Sesión</CardTitle></CardHeader>
+        <p className="text-sm text-slate-500 mb-4">Cerrá tu sesión en este dispositivo.</p>
+        <Button variant="secondary" loading={loggingOut} onClick={() => doLogout()} className="flex items-center gap-2 text-red-400 hover:text-red-300 border-red-900/40 hover:border-red-700">
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </Button>
       </Card>
     </div>
   );
