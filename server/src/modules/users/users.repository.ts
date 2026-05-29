@@ -15,7 +15,7 @@ export class UsersRepository {
     return db.query.users.findFirst({ where: eq(users.username, username) });
   }
 
-  async update(id: string, data: Partial<{ username: string; avatarUrl: string | null; currency: string; language: string; timezone: string; passwordHash: string; updatedAt: string }>) {
+  async update(id: string, data: Partial<{ username: string; avatarUrl: string | null; currency: string; language: string; timezone: string; monthlyIncome: number; passwordHash: string; updatedAt: string }>) {
     const [u] = await db.update(users).set({ ...data, updatedAt: new Date().toISOString() }).where(eq(users.id, id)).returning();
     return u;
   }

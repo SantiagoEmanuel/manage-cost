@@ -1,4 +1,4 @@
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const users = sqliteTable('users', {
@@ -10,6 +10,7 @@ export const users = sqliteTable('users', {
   currency: text('currency').notNull().default('USD'),
   language: text('language').notNull().default('es'),
   timezone: text('timezone').notNull().default('UTC'),
+  monthlyIncome: real('monthly_income').notNull().default(0),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
   updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`),
   deletedAt: text('deleted_at'),

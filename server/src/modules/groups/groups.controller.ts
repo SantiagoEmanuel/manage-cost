@@ -80,6 +80,14 @@ export async function createGroupExpense(req: Request, res: Response, next: Next
   } catch (err) { next(err); }
 }
 
+export async function updateGroupExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { user } = req as AuthenticatedRequest;
+    const data = await service.updateGroupExpense(param(req, 'id'), param(req, 'expId'), user.id, req.body);
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
 export async function deleteGroupExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { user } = req as AuthenticatedRequest;

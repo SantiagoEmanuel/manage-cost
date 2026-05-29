@@ -29,6 +29,10 @@ export const groupsApi = {
     const res = await api.post<{ success: boolean; data: GroupExpense }>(`/groups/${groupId}/expenses`, data);
     return res.data.data;
   },
+  updateExpense: async (groupId: string, expId: string, data: { description?: string; currency?: string; date?: string }) => {
+    const res = await api.patch<{ success: boolean; data: GroupExpense }>(`/groups/${groupId}/expenses/${expId}`, data);
+    return res.data.data;
+  },
   deleteExpense: async (groupId: string, expId: string) => {
     await api.delete(`/groups/${groupId}/expenses/${expId}`);
   },

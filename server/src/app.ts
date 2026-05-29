@@ -12,6 +12,7 @@ import { expensesRoutes } from './modules/expenses/expenses.routes.js';
 import { groupsRoutes } from './modules/groups/groups.routes.js';
 import { balancesRoutes } from './modules/balances/balances.routes.js';
 import { settlementsRoutes } from './modules/settlements/settlements.routes.js';
+import { fixedExpensesRoutes } from './modules/fixed-expenses/fixed-expenses.routes.js';
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.use('/api/expenses', expensesRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/balances', balancesRoutes);
 app.use('/api/settlements', settlementsRoutes);
+app.use('/api/fixed-expenses', fixedExpensesRoutes);
 
 app.use(errorHandler);
 export { app };

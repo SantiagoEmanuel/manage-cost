@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { GroupsRepository } from './groups.repository.js';
 import { UsersRepository } from '../users/users.repository.js';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../shared/errors/app-error.js';
-import type { CreateGroupInput, UpdateGroupInput, InviteInput, CreateGroupExpenseInput } from './groups.schema.js';
+import type { CreateGroupInput, UpdateGroupInput, InviteInput, CreateGroupExpenseInput, UpdateGroupExpenseInput } from './groups.schema.js';
 import type { GroupDto, GroupMemberDto, GroupExpenseDto } from './groups.dto.js';
 import type { Group } from '../../db/schema/index.js';
 
@@ -152,6 +152,25 @@ export class GroupsService {
       amount: expense.amount, currency: expense.currency, description: expense.description,
       category: expense.category, paymentMethod: expense.paymentMethod, date: expense.date,
       notes: expense.notes, createdAt: expense.createdAt, splits,
+    };
+  }
+
+  async updateGroupExpense(groupId: string, expenseId: string, userId: string, input: UpdateGroupExpenseInput): Promise<GroupExpenseDto> {
+    const membership = await this.repo.findMembership(groupId, userId);
+    if (!membership) throw new ForbiddenError('Not a member');
+    const expense = await this.repo.findGroupExpense(expenseId, groupId);
+    if (!expense) throw new NotFoundError('Expense');
+    if (expense.payerId !== userId) throw new ForbiddenError('Only the payer can edit this expense');
+    const updated = await this.repo.updateGroupExpense(expenseId, input);
+    if (!updated) throw new NotFoundError('Expense');
+    const payer = await this.usersRepo.findById(updated.payerId);
+    const splits = await this.repo.getExpenseSplits(updated.id);
+    return {
+      id: updated.id, groupId, payerId: updated.payerId, payerUsername: payer?.username ?? '',
+      amount: updated.amount, currency: updated.currency, description: updated.description,
+      category: updated.category, paymentMethod: updated.paymentMethod, date: updated.date,
+      notes: updated.notes, createdAt: updated.createdAt,
+      splits: splits.map(s => ({ userId: s.userId, username: s.username, amount: s.amount })),
     };
   }
 

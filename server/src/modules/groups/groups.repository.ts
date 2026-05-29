@@ -97,9 +97,19 @@ export class GroupsRepository {
     });
     if (existing) {
       const newAmount = existing.amount + data.amount;
-      await db.update(debts).set({ amount: newAmount, updatedAt: new Date().toISOString() }).where(eq(debts.id, existing.id));
+      // If the debt was fully paid and new expenses are added, reopen it as pending
+      const status = existing.status === 'paid' && newAmount > 0.01 ? 'pending' : existing.status;
+      await db.update(debts).set({ amount: newAmount, status, updatedAt: new Date().toISOString() }).where(eq(debts.id, existing.id));
     } else {
       await db.insert(debts).values({ ...data, status: 'pending' });
     }
+  }
+
+  async updateGroupExpense(expenseId: string, data: { description?: string | undefined; currency?: string | undefined; date?: string | undefined }) {
+    const [e] = await db.update(expenses)
+      .set({ ...data, updatedAt: new Date().toISOString() })
+      .where(eq(expenses.id, expenseId))
+      .returning();
+    return e;
   }
 }

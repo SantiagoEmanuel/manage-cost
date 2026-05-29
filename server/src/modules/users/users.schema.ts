@@ -6,6 +6,7 @@ export const updateProfileSchema = z.object({
   currency: z.string().length(3).optional(),
   language: z.string().min(2).max(10).optional(),
   timezone: z.string().min(1).max(60).optional(),
+  monthlyIncome: z.coerce.number().min(0).optional(),
 });
 
 export const changePasswordSchema = z.object({
