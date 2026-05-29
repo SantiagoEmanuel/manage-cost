@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { router } from './app/router';
 import { queryClient } from './shared/lib/query-client';
 import { ToastProvider } from './shared/components/Toast';
+import { UpdatePrompt } from './shared/components/UpdatePrompt';
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <ToastProvider>
         <RouterProvider router={router} />
       </ToastProvider>
+      <UpdatePrompt />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
