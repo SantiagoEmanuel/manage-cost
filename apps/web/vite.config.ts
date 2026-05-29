@@ -49,41 +49,4 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (
-            id.includes("node_modules/react-dom") ||
-            id.includes("node_modules/react/")
-          )
-            return "react";
-          if (id.includes("node_modules/react-router-dom")) return "router";
-          if (
-            id.includes("node_modules/recharts") ||
-            id.includes("node_modules/d3")
-          )
-            return "charts";
-          if (id.includes("node_modules/@tanstack/react-query")) return "query";
-          if (
-            id.includes("node_modules/react-hook-form") ||
-            id.includes("node_modules/@hookform") ||
-            id.includes("node_modules/zod")
-          )
-            return "forms";
-          if (
-            id.includes("node_modules/lucide-react") ||
-            id.includes("node_modules/clsx") ||
-            id.includes("node_modules/tailwind-merge")
-          )
-            return "ui";
-          if (
-            id.includes("node_modules/zustand") ||
-            id.includes("node_modules/axios")
-          )
-            return "store";
-        },
-      },
-    },
-  },
 });
