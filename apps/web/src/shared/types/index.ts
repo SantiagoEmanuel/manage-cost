@@ -103,13 +103,40 @@ export interface BalanceSummary {
   totalOwedToMe: number;
 }
 
+export type PaymentMethod = 'cash' | 'debit' | 'credit' | 'transfer' | 'digital_wallet';
+
+export interface SettlementDebt {
+  id: string;
+  groupId: string;
+  groupName: string;
+  creditorId: string;
+  creditorUsername: string;
+  debtorId: string;
+  debtorUsername: string;
+  amount: number;
+  currency: string;
+  status: string;
+}
+
 export interface Settlement {
   id: string;
   debtId: string;
   paidBy: string;
   amount: number;
+  paymentMethod: PaymentMethod;
+  reference: string | null;
+  paidAt: string;
   notes: string | null;
   receiptUrl: string | null;
   createdAt: string;
-  debt?: { creditorId: string; debtorId: string; amount: number; currency: string; groupId: string };
+  debt?: SettlementDebt;
+}
+
+export interface CreateSettlementPayload {
+  debtId: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  reference?: string | null;
+  paidAt?: string;
+  notes?: string | null;
 }

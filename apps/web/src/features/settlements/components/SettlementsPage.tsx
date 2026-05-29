@@ -1,47 +1,25 @@
 import { useState } from 'react';
 import { PageMeta } from '@/shared/components/PageMeta';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Plus } from 'lucide-react';
 import { settlementsApi } from '../api/settlements.api';
-import { queryClient } from '@/shared/lib/query-client';
+import { PaymentModal } from './PaymentModal';
 import { Card, CardHeader, CardTitle } from '@/shared/components/Card';
 import { Button } from '@/shared/components/Button';
-import { Input } from '@/shared/components/Input';
-import { Modal } from '@/shared/components/Modal';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { CardSkeleton } from '@/shared/components/SkeletonLoader';
-import { toast } from '@/shared/components/Toast';
-import { formatCurrency } from '@/shared/lib/format';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-const schema = z.object({
-  debtId: z.string().uuid('Seleccioná una deuda'),
-  amount: z.coerce.number().positive('Monto positivo'),
-  notes: z.string().optional(),
-});
-type FormData = z.infer<typeof schema>;
+import { formatCurrency, formatDateTime, paymentMethodLabel } from '@/shared/lib/format';
+import type { Settlement } from '@/shared/types';
 
 export function SettlementsPage() {
   const [showCreate, setShowCreate] = useState(false);
+  const [preselectedDebtId, setPreselectedDebtId] = useState<string | undefined>(undefined);
   const { data: balances, isLoading: balLoading } = useQuery({ queryKey: ['balances'], queryFn: settlementsApi.getBalances });
-  const { data: settlements, isLoading: settLoading } = useQuery({ queryKey: ['settlements'], queryFn: settlementsApi.list });
-
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  const createMutation = useMutation({
-    mutationFn: settlementsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settlements'] });
-      queryClient.invalidateQueries({ queryKey: ['balances'] });
-      setShowCreate(false); reset();
-      toast('success', 'Pago registrado');
-    },
-    onError: () => toast('error', 'Error al registrar pago'),
-  });
+  const { data: settlements, isLoading: settLoading } = useQuery({ queryKey: ['settlements'], queryFn: () => settlementsApi.list() });
 
   const iOwe = balances?.iOwe ?? [];
+
+  const openPay = (debtId?: string) => { setPreselectedDebtId(debtId); setShowCreate(true); };
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,7 +30,7 @@ export function SettlementsPage() {
           <p className="text-sm text-slate-500 mt-0.5">Pagos y deudas pendientes</p>
         </div>
         {iOwe.length > 0 && (
-          <Button size="sm" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4" />Pagar deuda</Button>
+          <Button size="sm" onClick={() => openPay()}><Plus className="h-4 w-4" />Pagar deuda</Button>
         )}
       </div>
 
@@ -73,7 +51,7 @@ export function SettlementsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-red-400">{formatCurrency(d.amount, d.currency)}</span>
-                  <Button size="sm" variant="secondary" onClick={() => { setValue('debtId', d.debtId); setValue('amount', d.amount); setShowCreate(true); }}>
+                  <Button size="sm" variant="secondary" onClick={() => openPay(d.debtId)}>
                     Pagar
                   </Button>
                 </div>
@@ -113,44 +91,34 @@ export function SettlementsPage() {
         {settLoading ? <CardSkeleton lines={4} /> : !settlements || settlements.length === 0 ? (
           <EmptyState icon={<ArrowLeftRight className="h-10 w-10" />} title="Sin pagos registrados" description="Cuando liquidés deudas aparecerán aquí" />
         ) : (
-          <div className="flex flex-col gap-2">
-            {settlements.map((s: { id: string; amount: number; createdAt: string; notes?: string | null; debt?: { currency: string } }) => (
-              <div key={s.id} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
-                <div>
-                  <p className="text-sm text-slate-200">Pago realizado</p>
-                  <p className="text-xs text-slate-500">{new Date(s.createdAt).toLocaleDateString('es-AR')}</p>
-                  {s.notes && <p className="text-xs text-slate-600">{s.notes}</p>}
+          <div className="flex flex-col gap-3">
+            {settlements.map((s: Settlement) => (
+              <div key={s.id} className="flex items-start justify-between gap-3 py-2 border-b border-slate-800 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-200">
+                    Pago a <span className="font-medium">{s.debt?.creditorUsername ?? '—'}</span>
+                    {s.debt?.groupName ? <span className="text-slate-500"> · {s.debt.groupName}</span> : null}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {formatDateTime(s.paidAt)} · {paymentMethodLabel(s.paymentMethod)}
+                    {s.debt?.status === 'paid' ? ' · Saldada' : s.debt?.status === 'partial' ? ' · Pago parcial' : ''}
+                  </p>
+                  {s.reference && <p className="text-xs text-slate-600 truncate">Ref: {s.reference}</p>}
+                  {s.notes && <p className="text-xs text-slate-600 truncate">{s.notes}</p>}
                 </div>
-                <span className="text-sm font-medium text-green-400">{formatCurrency(s.amount, s.debt?.currency ?? 'USD')}</span>
+                <span className="text-sm font-medium text-green-400 shrink-0">{formatCurrency(s.amount, s.debt?.currency ?? 'USD')}</span>
               </div>
             ))}
           </div>
         )}
       </Card>
 
-      {/* Pay modal */}
-      <Modal open={showCreate} onClose={() => { setShowCreate(false); reset(); }} title="Registrar pago">
-        <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-300">Deuda</label>
-            <select className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500" {...register('debtId')}>
-              <option value="">Seleccioná una deuda</option>
-              {iOwe.map(d => (
-                <option key={d.debtId} value={d.debtId}>
-                  {d.creditorUsername} — {formatCurrency(d.amount, d.currency)} ({d.groupName})
-                </option>
-              ))}
-            </select>
-            {errors.debtId && <p className="text-xs text-red-400">{errors.debtId.message}</p>}
-          </div>
-          <Input label="Monto a pagar" type="number" step="0.01" error={errors.amount?.message} {...register('amount')} />
-          <Input label="Notas (opcional)" placeholder="Transferencia..." {...register('notes')} />
-          <div className="flex gap-3">
-            <Button type="button" variant="secondary" onClick={() => { setShowCreate(false); reset(); }} className="flex-1">Cancelar</Button>
-            <Button type="submit" loading={createMutation.isPending} className="flex-1">Registrar pago</Button>
-          </div>
-        </form>
-      </Modal>
+      <PaymentModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        debts={iOwe}
+        preselectedDebtId={preselectedDebtId}
+      />
     </div>
   );
 }

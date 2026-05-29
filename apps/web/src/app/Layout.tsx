@@ -65,16 +65,16 @@ export function Layout() {
 
       {/* Main */}
       <main className="flex-1 md:ml-56 flex flex-col min-h-screen">
-        <div className="flex-1 px-4 md:px-8 py-6 max-w-5xl w-full mx-auto">
+        <div className="flex-1 px-4 md:px-8 pt-6 pb-28 md:pb-8 max-w-5xl w-full mx-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* Bottom nav mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex z-30">
+      {/* Bottom nav mobile — respeta el safe-area inferior de iPhone */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex z-30 pb-[env(safe-area-inset-bottom)]">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink key={to} to={to} className={({ isActive }) => cn(
-            'flex-1 flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors',
+            'flex-1 flex flex-col items-center gap-1 pt-2 pb-2 text-[10px] font-medium transition-colors',
             isActive ? 'text-violet-400' : 'text-slate-600 hover:text-slate-400'
           )}>
             <Icon className="h-5 w-5" />

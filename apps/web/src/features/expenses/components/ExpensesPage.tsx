@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageMeta } from '@/shared/components/PageMeta';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Plus, Trash2, Pencil } from 'lucide-react';
@@ -18,6 +19,16 @@ export function ExpensesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [filters, setFilters] = useState({ page: 1, category: '', paymentMethod: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Abrir el modal de creación si se llega con ?new=1 (p. ej. desde el dashboard).
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setShowCreate(true);
+      searchParams.delete('new');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['expenses', filters],

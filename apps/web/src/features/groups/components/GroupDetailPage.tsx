@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { PageMeta } from '@/shared/components/PageMeta';
-import { ArrowLeft, Plus, UserPlus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Plus, UserPlus, Trash2, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
 import { groupsApi } from '../api/groups.api';
+import { settlementsApi } from '@/features/settlements/api/settlements.api';
+import { PaymentModal } from '@/features/settlements/components/PaymentModal';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { queryClient } from '@/shared/lib/query-client';
 import { Card, CardHeader, CardTitle } from '@/shared/components/Card';
@@ -12,7 +14,8 @@ import { Modal } from '@/shared/components/Modal';
 import { Input } from '@/shared/components/Input';
 import { PageSpinner } from '@/shared/components/Spinner';
 import { toast } from '@/shared/components/Toast';
-import { formatCurrency, formatDate, PAYMENT_METHODS, CATEGORIES } from '@/shared/lib/format';
+import { formatCurrency, formatDate, formatDateTime, paymentMethodLabel, PAYMENT_METHODS, CATEGORIES } from '@/shared/lib/format';
+import type { Settlement } from '@/shared/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,10 +39,13 @@ export function GroupDetailPage() {
   const user = useAuthStore(s => s.user);
   const [showInvite, setShowInvite] = useState(false);
   const [showExpense, setShowExpense] = useState(false);
+  const [showPay, setShowPay] = useState(false);
+  const [preselectedDebtId, setPreselectedDebtId] = useState<string | undefined>(undefined);
 
   const { data: group, isLoading } = useQuery({ queryKey: ['groups', id], queryFn: () => groupsApi.getById(id!) });
   const { data: expenses } = useQuery({ queryKey: ['groups', id, 'expenses'], queryFn: () => groupsApi.listExpenses(id!) });
   const { data: balances } = useQuery({ queryKey: ['balances', 'group', id], queryFn: () => groupsApi.getBalances(id!) });
+  const { data: settlements } = useQuery({ queryKey: ['settlements', 'group', id], queryFn: () => settlementsApi.list(id!) });
 
   const { register: regInvite, handleSubmit: hsInvite, reset: resetInvite, formState: { errors: invErrors } } = useForm<InviteData>({ resolver: zodResolver(inviteSchema) });
   const { register: regExp, handleSubmit: hsExp, reset: resetExp, formState: { errors: expErrors } } = useForm<ExpenseData>({
@@ -92,6 +98,9 @@ export function GroupDetailPage() {
               <TrendingDown className="h-5 w-5 text-red-400 shrink-0" />
               <div className="flex-1 text-sm text-slate-400">Le debés a <span className="text-slate-200">{d.creditorUsername}</span></div>
               <span className="font-semibold text-red-400">{formatCurrency(d.amount, d.currency)}</span>
+              <Button size="sm" variant="secondary" onClick={() => { setPreselectedDebtId(d.debtId); setShowPay(true); }}>
+                Pagar
+              </Button>
             </Card>
           ))}
           {(balances?.theyOweMe ?? []).map(d => (
@@ -164,6 +173,48 @@ export function GroupDetailPage() {
           )}
         </Card>
       </div>
+
+      {/* Payment history */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Historial de pagos</CardTitle>
+        </CardHeader>
+        {!settlements || settlements.length === 0 ? (
+          <p className="text-sm text-slate-500 text-center py-4">Sin pagos registrados en este grupo</p>
+        ) : (
+          <div className="flex flex-col gap-3 max-h-80 overflow-y-auto">
+            {settlements.map((s: Settlement) => (
+              <div key={s.id} className="flex items-start justify-between gap-3 py-2 border-b border-slate-800 last:border-0">
+                <div className="flex items-start gap-2 min-w-0">
+                  <ArrowLeftRight className="h-4 w-4 text-violet-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-slate-200">
+                      <span className="font-medium">{s.debt?.debtorUsername ?? '—'}</span>
+                      {' → '}
+                      <span className="font-medium">{s.debt?.creditorUsername ?? '—'}</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {formatDateTime(s.paidAt)} · {paymentMethodLabel(s.paymentMethod)}
+                      {s.debt?.status === 'paid' ? ' · Saldada' : s.debt?.status === 'partial' ? ' · Parcial' : ''}
+                    </p>
+                    {s.reference && <p className="text-xs text-slate-600 truncate">Ref: {s.reference}</p>}
+                    {s.notes && <p className="text-xs text-slate-600 truncate">{s.notes}</p>}
+                  </div>
+                </div>
+                <span className="text-sm font-medium text-green-400 shrink-0">{formatCurrency(s.amount, s.debt?.currency ?? group.currency)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Payment modal */}
+      <PaymentModal
+        open={showPay}
+        onClose={() => setShowPay(false)}
+        debts={balances?.iOwe ?? []}
+        preselectedDebtId={preselectedDebtId}
+      />
 
       {/* Invite modal */}
       <Modal open={showInvite} onClose={() => { setShowInvite(false); resetInvite(); }} title="Invitar usuario">

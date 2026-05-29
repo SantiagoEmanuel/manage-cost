@@ -26,3 +26,19 @@ export const PAYMENT_METHODS = [
   { value: 'transfer', label: 'Transferencia' },
   { value: 'digital_wallet', label: 'Billetera virtual' },
 ];
+
+/** Devuelve la etiqueta legible de un método de pago. */
+export function paymentMethodLabel(value: string): string {
+  return PAYMENT_METHODS.find(m => m.value === value)?.label ?? value;
+}
+
+/** Formatea una fecha+hora ISO (timestamp) en formato local es-AR. */
+export function formatDateTime(dateStr: string): string {
+  try {
+    return new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(new Date(dateStr));
+  } catch {
+    return dateStr;
+  }
+}
