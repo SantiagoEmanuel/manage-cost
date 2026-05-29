@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "prompt",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       includeAssets: ["favicon.ico", "favicon.svg", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "ManageCost — Gestión de gastos",
@@ -30,18 +33,8 @@ export default defineConfig({
           { src: "/maskable-icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\.santiagomustafa\.com\.ar\/api\//,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
       },
     }),
   ],
@@ -66,6 +59,11 @@ export default defineConfig({
           )
             return "react";
           if (id.includes("node_modules/react-router-dom")) return "router";
+          if (
+            id.includes("node_modules/recharts") ||
+            id.includes("node_modules/d3")
+          )
+            return "charts";
           if (id.includes("node_modules/@tanstack/react-query")) return "query";
           if (
             id.includes("node_modules/react-hook-form") ||

@@ -24,4 +24,8 @@ export const fixedExpensesApi = {
   delete: async (id: string) => {
     await api.delete(`/fixed-expenses/${id}`);
   },
+  applyMonthly: async () => {
+    const res = await api.post<{ success: boolean; data: { applied: number } }>('/fixed-expenses/apply-monthly');
+    return res.data.data;
+  },
 };

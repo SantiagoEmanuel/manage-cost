@@ -25,8 +25,12 @@ export const groupsApi = {
     const res = await api.get<{ success: boolean; data: GroupExpense[] }>(`/groups/${groupId}/expenses`);
     return res.data.data;
   },
-  createExpense: async (groupId: string, data: { amount: number; description: string; currency?: string; category?: string; paymentMethod?: string; date: string; notes?: string; splitType?: string }) => {
+  createExpense: async (groupId: string, data: { amount: number; description: string; currency?: string; category?: string; paymentMethod?: string; date: string; notes?: string; splitType?: string; splits?: { userId: string; value: number }[] }) => {
     const res = await api.post<{ success: boolean; data: GroupExpense }>(`/groups/${groupId}/expenses`, data);
+    return res.data.data;
+  },
+  simplifyDebts: async (groupId: string) => {
+    const res = await api.post<{ success: boolean; data: { simplified: number; skippedCurrencies: string[] } }>(`/groups/${groupId}/simplify-debts`);
     return res.data.data;
   },
   updateExpense: async (groupId: string, expId: string, data: { description?: string; currency?: string; date?: string }) => {
