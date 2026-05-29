@@ -5,8 +5,8 @@ import { BCRYPT_ROUNDS } from '../../shared/constants/index.js';
 import type { UpdateProfileInput, ChangePasswordInput } from './users.schema.js';
 import type { UserProfileDto } from './users.dto.js';
 
-function toDto(user: { id: string; email: string; username: string; avatarUrl: string | null; currency: string; language: string; timezone: string; createdAt: string }): UserProfileDto {
-  return { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl, currency: user.currency, language: user.language, timezone: user.timezone, createdAt: user.createdAt };
+function toDto(user: { id: string; email: string; username: string; avatarUrl: string | null; currency: string; language: string; timezone: string; monthlyIncome: number; createdAt: string }): UserProfileDto {
+  return { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl, currency: user.currency, language: user.language, timezone: user.timezone, monthlyIncome: user.monthlyIncome, createdAt: user.createdAt };
 }
 
 export class UsersService {
@@ -29,6 +29,7 @@ export class UsersService {
     if (input.currency !== undefined) patch.currency = input.currency;
     if (input.language !== undefined) patch.language = input.language;
     if (input.timezone !== undefined) patch.timezone = input.timezone;
+    if (input.monthlyIncome !== undefined) patch.monthlyIncome = input.monthlyIncome;
     const updated = await this.repo.update(userId, patch);
     if (!updated) throw new NotFoundError('User');
     return toDto(updated);

@@ -6,7 +6,20 @@ export interface User {
   currency: string;
   language: string;
   timezone?: string;
+  monthlyIncome?: number;
   createdAt?: string;
+}
+
+export interface FixedExpense {
+  id: string;
+  userId: string;
+  description: string;
+  amount: number;
+  currency: string;
+  category: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ApiResponse<T = unknown> {

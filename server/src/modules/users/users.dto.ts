@@ -6,5 +6,6 @@ export interface UserProfileDto {
   currency: string;
   language: string;
   timezone: string;
+  monthlyIncome: number;
   createdAt: string;
 }
