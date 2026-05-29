@@ -8,6 +8,13 @@
       "when": 1779994643016,
       "tag": "0000_outstanding_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780018272149,
+      "tag": "0001_soft_spot",
+      "breakpoints": true
     }
   ]
 }

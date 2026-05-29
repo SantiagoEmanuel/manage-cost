@@ -16,6 +16,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.status(err.statusCode).json({ success: false, code: err.code, message: err.message });
     return;
   }
+  if (err instanceof Error && err.message.startsWith('CORS:')) {
+    res.status(403).json({ success: false, code: 'FORBIDDEN', message: 'Origin not allowed' });
+    return;
+  }
   logger.error({ err, method: req.method, path: req.path }, 'Unhandled error');
   res.status(500).json({ success: false, code: 'INTERNAL_ERROR', message: 'Internal server error' });
 }

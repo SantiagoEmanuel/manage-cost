@@ -11,4 +11,17 @@
     min-height: 100vh;
   }
   #root { min-height: 100vh; }
+
+  /*
+   * iOS hace zoom automático al enfocar un campo cuyo font-size es < 16px.
+   * En móvil forzamos 16px en los controles de formulario para evitarlo,
+   * conservando el tamaño visual menor (text-sm) en desktop.
+   */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
 }

@@ -32,6 +32,16 @@ export const settlements = sqliteTable('settlements', {
     .notNull()
     .references(() => users.id),
   amount: real('amount').notNull(),
+  /** Medio por el que se realizó el pago, para ubicar la transacción. */
+  paymentMethod: text('payment_method', {
+    enum: ['cash', 'debit', 'credit', 'transfer', 'digital_wallet'],
+  })
+    .notNull()
+    .default('cash'),
+  /** Número de comprobante / referencia de la transacción (CBU, ID de operación, etc.). */
+  reference: text('reference'),
+  /** Fecha en que se realizó el pago (puede diferir de createdAt). */
+  paidAt: text('paid_at').notNull().default(sql`(current_timestamp)`),
   notes: text('notes'),
   receiptUrl: text('receipt_url'),
   createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),

@@ -25,8 +25,8 @@ api.interceptors.response.use(
     if (status === 401 && original && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
-        refreshPromise ??= axios
-          .post("/api/auth/refresh", {}, { withCredentials: true })
+        refreshPromise ??= api
+          .post("/auth/refresh", {}, { withCredentials: true })
           .then(() => undefined);
         await refreshPromise;
         return api(original);

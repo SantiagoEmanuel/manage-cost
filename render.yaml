@@ -14,7 +14,7 @@ services:
       - key: PORT
         value: 10000
       - key: CORS_ORIGIN
-        value: https://www.gastos.santiagomustafa.com.ar
+        value: https://gastos.santiagomustafa.com.ar,https://www.gastos.santiagomustafa.com.ar
       # Configurar manualmente en el dashboard de Render:
       - key: DATABASE_URL
         sync: false

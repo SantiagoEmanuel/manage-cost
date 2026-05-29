@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { SettlementsService } from './settlements.service.js';
+import { getValidatedQuery } from '../../shared/middlewares/validate.middleware.js';
+import type { SettlementQuery } from './settlements.schema.js';
 import type { AuthenticatedRequest } from '../../shared/types/index.js';
 
 const service = new SettlementsService();
@@ -11,7 +13,8 @@ function param(req: Request, key: string): string {
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { user } = req as AuthenticatedRequest;
-    const data = await service.list(user.id);
+    const query = getValidatedQuery<SettlementQuery>(res);
+    const data = await service.list(user.id, query?.groupId);
     res.json({ success: true, data });
   } catch (err) { next(err); }
 }

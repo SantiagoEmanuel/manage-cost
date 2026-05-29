@@ -52,7 +52,7 @@ export function DashboardPage() {
           <h1 className="text-xl font-bold text-slate-100">Hola, {user?.username} 👋</h1>
           <p className="text-sm text-slate-500 mt-0.5">Resumen financiero</p>
         </div>
-        <Link to="/expenses/new">
+        <Link to="/expenses?new=1">
           <Button size="sm"><Plus className="h-4 w-4" />Nuevo gasto</Button>
         </Link>
       </div>
