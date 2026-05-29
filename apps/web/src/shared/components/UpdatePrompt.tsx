@@ -1,3 +1,4 @@
+/// <reference types="vite-plugin-pwa/react" />
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
