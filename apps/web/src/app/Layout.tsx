@@ -88,8 +88,8 @@ export function Layout() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 md:ml-56 flex flex-col min-h-screen">
-        <div className="flex-1 px-4 md:px-8 pt-6 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 max-w-5xl w-full mx-auto">
+      <main className="flex-1 md:ml-56 flex flex-col min-h-dvh">
+        <div className="flex-1 px-4 md:px-8 pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 max-w-5xl w-full mx-auto">
           <Outlet />
         </div>
       </main>
