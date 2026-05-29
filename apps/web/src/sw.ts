@@ -3,10 +3,22 @@ import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
+import { clientsClaim } from 'workbox-core';
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
 precacheAndRoute(self.__WB_MANIFEST);
+
+// Permite que `updateServiceWorker(true)` (prompt de nueva versión) active
+// el SW en espera: el cliente postea SKIP_WAITING y aquí lo aplicamos.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// El nuevo SW toma control de las pestañas abiertas tras activarse.
+clientsClaim();
 
 registerRoute(
   ({ url }) => url.origin === 'https://api.santiagomustafa.com.ar',
