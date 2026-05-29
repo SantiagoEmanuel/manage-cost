@@ -1,6 +1,6 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, ne } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { groups, groupMembers, expenses, expenseSplits, users, debts } from '../../db/schema/index.js';
+import { groups, groupMembers, expenses, expenseSplits, users, debts, settlements } from '../../db/schema/index.js';
 import type { NewGroup, NewGroupMember, NewExpense, NewExpenseSplit } from '../../db/schema/index.js';
 
 
@@ -102,6 +102,40 @@ export class GroupsRepository {
       await db.update(debts).set({ amount: newAmount, status, updatedAt: new Date().toISOString() }).where(eq(debts.id, existing.id));
     } else {
       await db.insert(debts).values({ ...data, status: 'pending' });
+    }
+  }
+
+  async getGroupDebts(groupId: string) {
+    return db.query.debts.findMany({
+      where: and(eq(debts.groupId, groupId), ne(debts.status, 'paid')),
+    });
+  }
+
+  /**
+   * Returns the ids of non-paid debts that have settlement children
+   * (i.e. cannot be safely deleted).
+   */
+  async findSettledDebtIds(groupId: string): Promise<string[]> {
+    const groupDebts = await this.getGroupDebts(groupId);
+    const settled: string[] = [];
+    for (const d of groupDebts) {
+      const children = await db.query.settlements.findMany({ where: eq(settlements.debtId, d.id) });
+      if (children.length > 0) settled.push(d.id);
+    }
+    return settled;
+  }
+
+  /**
+   * Deletes non-paid, settlement-free debts whose currency is in `currencies`.
+   * Debts in any other currency are left untouched.
+   */
+  async clearUnsettledGroupDebts(groupId: string, currencies: Set<string>): Promise<void> {
+    const groupDebts = await this.getGroupDebts(groupId);
+    for (const d of groupDebts) {
+      if (!currencies.has(d.currency)) continue;
+      const children = await db.query.settlements.findMany({ where: eq(settlements.debtId, d.id) });
+      if (children.length > 0) continue;
+      await db.delete(debts).where(eq(debts.id, d.id));
     }
   }
 

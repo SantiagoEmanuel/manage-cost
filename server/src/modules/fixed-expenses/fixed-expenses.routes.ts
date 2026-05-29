@@ -8,6 +8,7 @@ const router: ExpressRouter = Router();
 router.use(requireAuth);
 
 router.get('/', controller.list);
+router.post('/apply-monthly', controller.applyMonthly);
 router.post('/', validate(createFixedExpenseSchema), controller.create);
 router.patch('/:id', validate(updateFixedExpenseSchema), controller.update);
 router.delete('/:id', controller.remove);

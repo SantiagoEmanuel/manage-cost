@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { fixedExpenses } from '../../db/schema/index.js';
-import type { NewFixedExpense } from '../../db/schema/index.js';
+import { fixedExpenses, fixedExpenseApplications } from '../../db/schema/index.js';
+import type { NewFixedExpense, NewFixedExpenseApplication } from '../../db/schema/index.js';
 
 export class FixedExpensesRepository {
   findAllByUser(userId: string) {
@@ -29,5 +29,19 @@ export class FixedExpensesRepository {
 
   async delete(id: string, userId: string) {
     await db.delete(fixedExpenses).where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
+  }
+
+  findAppliedThisMonth(fixedExpenseId: string, month: string) {
+    return db.query.fixedExpenseApplications.findFirst({
+      where: and(
+        eq(fixedExpenseApplications.fixedExpenseId, fixedExpenseId),
+        eq(fixedExpenseApplications.appliedMonth, month),
+      ),
+    });
+  }
+
+  async markApplied(data: NewFixedExpenseApplication) {
+    const [a] = await db.insert(fixedExpenseApplications).values(data).returning();
+    return a!;
   }
 }

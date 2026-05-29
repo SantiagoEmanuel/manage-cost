@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { ExpensesService } from './expenses.service.js';
 import { getValidatedQuery } from '../../shared/middlewares/validate.middleware.js';
 import type { AuthenticatedRequest } from '../../shared/types/index.js';
-import type { ExpenseQuery } from './expenses.schema.js';
+import type { ExpenseQuery, HistoryQuery } from './expenses.schema.js';
 
 const service = new ExpensesService();
 
@@ -48,6 +48,15 @@ export async function remove(req: Request, res: Response, next: NextFunction): P
     const { user } = req as AuthenticatedRequest;
     await service.delete(param(req, 'id'), user.id);
     res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
+export async function getHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { user } = req as AuthenticatedRequest;
+    const query = getValidatedQuery<HistoryQuery>(res);
+    const data = await service.getHistory(user.id, query.months);
+    res.json({ success: true, data });
   } catch (err) { next(err); }
 }
 

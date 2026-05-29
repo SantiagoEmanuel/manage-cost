@@ -5,11 +5,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Trash2, ToggleLeft, ToggleRight, Wallet } from 'lucide-react';
+import { LogOut, Plus, Trash2, ToggleLeft, ToggleRight, Wallet, Target, Bell } from 'lucide-react';
 import { api } from '@/shared/lib/api';
 import { authApi } from '@/features/auth/api/auth.api';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { fixedExpensesApi } from '@/features/budget/api/fixed-expenses.api';
+import { categoryBudgetsApi } from '@/features/budget/api/category-budgets.api';
+import { usePushNotifications } from '@/features/push/usePushNotifications';
 import { queryClient } from '@/shared/lib/query-client';
 import { Card, CardHeader, CardTitle } from '@/shared/components/Card';
 import { Input } from '@/shared/components/Input';
@@ -48,6 +50,9 @@ export function ProfilePage() {
   const logout = useAuthStore(s => s.logout);
   const navigate = useNavigate();
   const [showAddFixed, setShowAddFixed] = useState(false);
+  const [budgetCategory, setBudgetCategory] = useState('general');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const { subscribe: subscribePush, isSupported: pushSupported, permission: pushPermission } = usePushNotifications();
 
   const { mutate: doLogout, isPending: loggingOut } = useMutation({
     mutationFn: authApi.logout,
@@ -119,6 +124,32 @@ export function ProfilePage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] }); toast('success', 'Gasto fijo eliminado'); },
     onError: () => toast('error', 'Error al eliminar'),
   });
+
+  const { data: budgets } = useQuery({
+    queryKey: ['category-budgets'],
+    queryFn: categoryBudgetsApi.list,
+  });
+
+  const upsertBudget = useMutation({
+    mutationFn: categoryBudgetsApi.upsert,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['category-budgets'] }); setBudgetAmount(''); toast('success', 'Límite guardado'); },
+    onError: () => toast('error', 'Error al guardar límite'),
+  });
+
+  const deleteBudget = useMutation({
+    mutationFn: categoryBudgetsApi.delete,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['category-budgets'] }); toast('success', 'Límite eliminado'); },
+    onError: () => toast('error', 'Error al eliminar'),
+  });
+
+  async function enablePush() {
+    try {
+      await subscribePush();
+      toast('success', 'Notificaciones activadas');
+    } catch {
+      toast('error', 'No se pudieron activar las notificaciones');
+    }
+  }
 
   if (isLoading) return <PageSpinner />;
 
@@ -227,6 +258,90 @@ export function ProfilePage() {
             ))}
           </div>
         )}
+      </Card>
+
+      {/* Category budgets */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-violet-400" />
+            <CardTitle>Límites por categoría</CardTitle>
+          </div>
+        </CardHeader>
+
+        {!budgets || budgets.length === 0 ? (
+          <p className="text-sm text-slate-500 text-center py-4">Sin límites configurados</p>
+        ) : (
+          <div className="flex flex-col gap-2 mb-4">
+            {budgets.map(b => (
+              <div key={b.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-700 bg-slate-800/30">
+                <span className="flex-1 text-sm text-slate-200 capitalize truncate">{b.category}</span>
+                <span className="text-sm font-medium text-violet-400 shrink-0">{formatCurrency(b.limitAmount, b.currency)}</span>
+                <button
+                  onClick={() => { if (confirm('¿Eliminar este límite?')) deleteBudget.mutate(b.id); }}
+                  className="text-slate-600 hover:text-red-400 transition-colors shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <label className="text-sm font-medium text-slate-300">Categoría</label>
+            <select
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              value={budgetCategory}
+              onChange={e => setBudgetCategory(e.target.value)}
+            >
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5 w-28">
+            <label className="text-sm font-medium text-slate-300">Monto</label>
+            <input
+              type="number"
+              step="0.01"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              value={budgetAmount}
+              onChange={e => setBudgetAmount(e.target.value)}
+            />
+          </div>
+          <Button
+            size="sm"
+            loading={upsertBudget.isPending}
+            onClick={() => {
+              const amount = Number(budgetAmount);
+              if (!amount || amount <= 0) { toast('error', 'Monto inválido'); return; }
+              upsertBudget.mutate({ category: budgetCategory, limitAmount: amount, currency: profile?.currency ?? 'USD' });
+            }}
+          >
+            Agregar
+          </Button>
+        </div>
+      </Card>
+
+      {/* Push notifications */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-violet-400" />
+            <CardTitle>Notificaciones</CardTitle>
+          </div>
+        </CardHeader>
+        <p className="text-sm text-slate-500 mb-4">Recibí avisos sobre tus gastos y deudas.</p>
+        <Button
+          variant="secondary"
+          disabled={!pushSupported || pushPermission === 'denied'}
+          onClick={enablePush}
+        >
+          <Bell className="h-4 w-4" />
+          {pushPermission === 'granted' ? 'Notificaciones activadas' : 'Activar notificaciones'}
+        </Button>
+        {!pushSupported && <p className="text-xs text-slate-600 mt-2">Tu navegador no soporta notificaciones push.</p>}
+        {pushSupported && pushPermission === 'denied' && <p className="text-xs text-amber-500 mt-2">Bloqueaste las notificaciones. Habilitalas en la configuración del navegador.</p>}
       </Card>
 
       {/* Password form */}

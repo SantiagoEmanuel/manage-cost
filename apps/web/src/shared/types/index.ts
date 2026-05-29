@@ -22,6 +22,16 @@ export interface FixedExpense {
   updatedAt: string;
 }
 
+export interface CategoryBudget {
+  id: string;
+  userId: string;
+  category: string;
+  limitAmount: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -57,7 +67,7 @@ export interface Expense {
 export interface ExpenseStats {
   totalMonth: number;
   totalYear: number;
-  byCategory: { category: string; total: number }[];
+  byCategory: { category: string; total: number; limit?: number }[];
   byMethod: { method: string; total: number }[];
 }
 

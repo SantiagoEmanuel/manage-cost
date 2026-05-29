@@ -3,7 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { corsOrigins } from './config/env.js';
+import webpush from 'web-push';
+import { corsOrigins, vapidPublicKey, vapidPrivateKey, vapidSubject } from './config/env.js';
 import { errorHandler } from './shared/errors/error-handler.js';
 import { RATE_LIMITS } from './shared/constants/index.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
@@ -13,6 +14,12 @@ import { groupsRoutes } from './modules/groups/groups.routes.js';
 import { balancesRoutes } from './modules/balances/balances.routes.js';
 import { settlementsRoutes } from './modules/settlements/settlements.routes.js';
 import { fixedExpensesRoutes } from './modules/fixed-expenses/fixed-expenses.routes.js';
+import { categoryBudgetsRoutes } from './modules/category-budgets/category-budgets.routes.js';
+import { pushRoutes } from './modules/push/push.routes.js';
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
 
 const app: Application = express();
 
@@ -43,6 +50,8 @@ app.use('/api/groups', groupsRoutes);
 app.use('/api/balances', balancesRoutes);
 app.use('/api/settlements', settlementsRoutes);
 app.use('/api/fixed-expenses', fixedExpensesRoutes);
+app.use('/api/category-budgets', categoryBudgetsRoutes);
+app.use('/api/push', pushRoutes);
 
 app.use(errorHandler);
 export { app };

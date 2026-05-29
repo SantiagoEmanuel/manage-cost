@@ -25,6 +25,11 @@ export const expenseQuerySchema = z.object({
   paymentMethod: paymentMethodEnum.optional(),
   from: z.string().optional(),
   to: z.string().optional(),
+  search: z.string().max(100).optional(),
+});
+
+export const historyQuerySchema = z.object({
+  months: z.coerce.number().int().min(1).max(12).default(6),
 });
 
 export const attachmentSchema = z.object({
@@ -35,3 +40,4 @@ export const attachmentSchema = z.object({
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type ExpenseQuery = z.infer<typeof expenseQuerySchema>;
+export type HistoryQuery = z.infer<typeof historyQuerySchema>;

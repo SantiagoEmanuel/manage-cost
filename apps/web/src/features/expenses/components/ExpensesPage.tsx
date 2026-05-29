@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageMeta } from '@/shared/components/PageMeta';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Plus, Trash2, Pencil, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Pencil, AlertCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { expensesApi } from '../api/expenses.api';
+import { categoryBudgetsApi } from '@/features/budget/api/category-budgets.api';
+import { fetchAllExpensesForMonth, exportExpensesToCSV } from '../lib/export-csv';
 import { queryClient } from '@/shared/lib/query-client';
 import { Card } from '@/shared/components/Card';
 import { Button } from '@/shared/components/Button';
@@ -37,7 +39,20 @@ export function ExpensesPage() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [filters, setFilters] = useState({ page: 1, category: '', paymentMethod: '' });
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setFilters(f => ({ ...f, page: 1 }));
+    }, 400);
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -62,9 +77,36 @@ export function ExpensesPage() {
   }
 
   const { data, isLoading } = useQuery({
-    queryKey: ['expenses', filters, selectedYear, selectedMonth],
-    queryFn: () => expensesApi.list({ page: filters.page, category: filters.category || undefined, paymentMethod: filters.paymentMethod || undefined, from, to }),
+    queryKey: ['expenses', filters, debouncedSearch, selectedYear, selectedMonth],
+    queryFn: () => expensesApi.list({ page: filters.page, category: filters.category || undefined, paymentMethod: filters.paymentMethod || undefined, search: debouncedSearch || undefined, from, to }),
   });
+
+  const { data: budgets } = useQuery({
+    queryKey: ['category-budgets'],
+    queryFn: categoryBudgetsApi.list,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['expenses', 'stats'],
+    queryFn: expensesApi.getStats,
+  });
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const all = await fetchAllExpensesForMonth(from, to);
+      exportExpensesToCSV(all, `gastos-${selectedYear}-${String(selectedMonth).padStart(2, '0')}.csv`);
+      toast('success', 'Gastos exportados');
+    } catch {
+      toast('error', 'Error al exportar');
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  const selectedBudget = filters.category ? budgets?.find(b => b.category === filters.category) : undefined;
+  const selectedSpent = filters.category ? stats?.byCategory.find(c => c.category === filters.category)?.total ?? 0 : 0;
+  const categoryOverLimit = selectedBudget !== undefined && selectedSpent > selectedBudget.limitAmount;
 
   const createMutation = useMutation({
     mutationFn: expensesApi.create,
@@ -92,9 +134,14 @@ export function ExpensesPage() {
           <h1 className="text-xl font-bold text-slate-100">Gastos personales</h1>
           <p className="text-sm text-slate-500 mt-0.5">{data?.pagination.total ?? 0} registros</p>
         </div>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" />Nuevo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={handleExport} loading={isExporting} disabled={isExporting}>
+            <Download className="h-4 w-4" />Exportar
+          </Button>
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" />Nuevo
+          </Button>
+        </div>
       </div>
 
       {/* Month navigator */}
@@ -111,7 +158,14 @@ export function ExpensesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-3 flex-wrap items-center">
+        <input
+          type="search"
+          placeholder="Buscar gastos…"
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          value={search}
+          onChange={e => handleSearchChange(e.target.value)}
+        />
         <select
           className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
           value={filters.category}
@@ -120,6 +174,11 @@ export function ExpensesPage() {
           <option value="">Todas las categorías</option>
           {CATEGORIES.map(c => <option key={c} value={c} className="capitalize">{c}</option>)}
         </select>
+        {categoryOverLimit && (
+          <span className="inline-flex items-center gap-1 rounded-lg bg-red-500/10 text-red-400 text-xs px-2 py-1">
+            <AlertCircle className="h-3 w-3" />Límite superado
+          </span>
+        )}
         <select
           className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
           value={filters.paymentMethod}

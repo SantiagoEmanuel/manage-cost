@@ -14,6 +14,7 @@ router.patch('/:id', validate(updateGroupSchema), controller.update);
 router.delete('/:id', controller.remove);
 router.post('/:id/invite', validate(inviteSchema), controller.invite);
 router.delete('/:id/members/:userId', controller.removeMember);
+router.post('/:id/simplify-debts', controller.simplifyDebts);
 router.get('/:id/expenses', controller.listGroupExpenses);
 router.post('/:id/expenses', validate(createGroupExpenseSchema), controller.createGroupExpense);
 router.patch('/:id/expenses/:expId', validate(updateGroupExpenseSchema), controller.updateGroupExpense);

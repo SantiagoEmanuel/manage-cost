@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { PageMeta } from '@/shared/components/PageMeta';
-import { ArrowLeft, Plus, UserPlus, Trash2, Pencil, TrendingUp, TrendingDown, ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, UserPlus, Trash2, Pencil, TrendingUp, TrendingDown, ArrowLeftRight, ChevronLeft, ChevronRight, Shuffle } from 'lucide-react';
 import { groupsApi } from '../api/groups.api';
+import { SplitEditor, validateSplits, type SplitType, type Split } from './SplitEditor';
 import { settlementsApi } from '@/features/settlements/api/settlements.api';
 import { PaymentModal } from '@/features/settlements/components/PaymentModal';
 import { useAuthStore } from '@/features/auth/auth.store';
@@ -54,6 +55,8 @@ export function GroupDetailPage() {
   const [editingExpense, setEditingExpense] = useState<GroupExpense | null>(null);
   const [expMonth, setExpMonth] = useState(now.getMonth() + 1);
   const [expYear, setExpYear] = useState(now.getFullYear());
+  const [splitType, setSplitType] = useState<SplitType>('equal');
+  const [customSplits, setCustomSplits] = useState<Split[]>([]);
 
   const { data: group, isLoading } = useQuery({ queryKey: ['groups', id], queryFn: () => groupsApi.getById(id!) });
   const { data: expenses } = useQuery({ queryKey: ['groups', id, 'expenses'], queryFn: () => groupsApi.listExpenses(id!) });
@@ -62,7 +65,7 @@ export function GroupDetailPage() {
 
   const { register: regInvite, handleSubmit: hsInvite, reset: resetInvite, formState: { errors: invErrors } } = useForm<InviteData>({ resolver: zodResolver(inviteSchema) });
   const { register: regEditExp, handleSubmit: hsEditExp, reset: resetEditExp, formState: { errors: editExpErrors } } = useForm<EditExpenseData>({ resolver: zodResolver(editExpenseSchema) });
-  const { register: regExp, handleSubmit: hsExp, reset: resetExp, formState: { errors: expErrors } } = useForm<ExpenseData>({
+  const { register: regExp, handleSubmit: hsExp, reset: resetExp, watch: watchExp, formState: { errors: expErrors } } = useForm<ExpenseData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: { currency: 'USD', category: 'general', paymentMethod: 'cash', date: new Date().toISOString().split('T')[0] },
   });
@@ -74,9 +77,28 @@ export function GroupDetailPage() {
   });
 
   const expenseMutation = useMutation({
-    mutationFn: (data: ExpenseData) => groupsApi.createExpense(id!, { ...data, splitType: 'equal' }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['groups', id, 'expenses'] }); queryClient.invalidateQueries({ queryKey: ['balances'] }); setShowExpense(false); resetExp(); toast('success', 'Gasto grupal creado'); },
+    mutationFn: (data: ExpenseData) => groupsApi.createExpense(id!, {
+      ...data,
+      splitType,
+      splits: splitType === 'equal' ? undefined : customSplits,
+    }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['groups', id, 'expenses'] }); queryClient.invalidateQueries({ queryKey: ['balances'] }); setShowExpense(false); resetExp(); setSplitType('equal'); setCustomSplits([]); toast('success', 'Gasto grupal creado'); },
     onError: () => toast('error', 'Error al crear gasto'),
+  });
+
+  const simplifyMutation = useMutation({
+    mutationFn: () => groupsApi.simplifyDebts(id!),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['balances'] });
+      queryClient.invalidateQueries({ queryKey: ['balances', 'group', id] });
+      queryClient.invalidateQueries({ queryKey: ['settlements', 'group', id] });
+      if (data.skippedCurrencies.length > 0) {
+        toast('error', `Deudas simplificadas. Monedas omitidas: ${data.skippedCurrencies.join(', ')}`);
+      } else {
+        toast('success', 'Deudas simplificadas');
+      }
+    },
+    onError: () => toast('error', 'Error al simplificar deudas'),
   });
 
   const updateExpenseMutation = useMutation({
@@ -96,10 +118,21 @@ export function GroupDetailPage() {
     onError: () => toast('error', 'Error al eliminar miembro'),
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (showExpense) {
+      setSplitType('equal');
+      setCustomSplits((group?.members ?? []).map(m => ({ userId: m.userId, value: 0 })));
+    }
+  }, [showExpense, group?.members]);
+
   if (isLoading) return <PageSpinner />;
   if (!group) return null;
 
   const isOwner = group.ownerId === user?.id;
+  const expenseAmount = Number(watchExp('amount')) || 0;
+  const splitError = validateSplits(splitType, customSplits, expenseAmount);
+  const hasDebts = (balances?.iOwe?.length ?? 0) + (balances?.theyOweMe?.length ?? 0) > 0;
 
   const filteredExpenses = (expenses ?? []).filter(e => {
     const [y, m] = e.date.split('-').map(Number);
@@ -130,7 +163,20 @@ export function GroupDetailPage() {
       </div>
 
       {/* Balances */}
-      {(balances?.iOwe?.length ?? 0) + (balances?.theyOweMe?.length ?? 0) > 0 && (
+      {hasDebts && (
+        <div className="flex flex-col gap-3">
+        {isOwner && (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={simplifyMutation.isPending}
+              onClick={() => { if (confirm('¿Simplificar las deudas del grupo?')) simplifyMutation.mutate(); }}
+            >
+              <Shuffle className="h-4 w-4" />Simplificar deudas
+            </Button>
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-3">
           {(balances?.iOwe ?? []).map(d => (
             <Card key={d.debtId} className="flex items-center gap-3 border-red-900/30">
@@ -149,6 +195,7 @@ export function GroupDetailPage() {
               <span className="font-semibold text-green-400">{formatCurrency(d.amount, d.currency)}</span>
             </Card>
           ))}
+        </div>
         </div>
       )}
 
@@ -311,7 +358,7 @@ export function GroupDetailPage() {
       </Modal>
 
       {/* Create group expense modal */}
-      <Modal open={showExpense} onClose={() => { setShowExpense(false); resetExp(); }} title="Nuevo gasto grupal">
+      <Modal open={showExpense} onClose={() => { setShowExpense(false); resetExp(); setSplitType('equal'); setCustomSplits([]); }} title="Nuevo gasto grupal">
         <form onSubmit={hsExp(d => expenseMutation.mutate(d))} className="flex flex-col gap-4">
           <Input label="Descripción" placeholder="Cena, compras..." error={expErrors.description?.message} {...regExp('description')} />
           <div className="grid grid-cols-2 gap-3">
@@ -338,10 +385,18 @@ export function GroupDetailPage() {
             </div>
           </div>
           <Input label="Fecha" type="date" {...regExp('date')} />
-          <p className="text-xs text-slate-500">El gasto se dividirá equitativamente entre todos los miembros.</p>
+          <SplitEditor
+            members={group.members ?? []}
+            totalAmount={expenseAmount}
+            splitType={splitType}
+            onSplitTypeChange={setSplitType}
+            splits={customSplits}
+            onSplitsChange={setCustomSplits}
+            currency={watchExp('currency')}
+          />
           <div className="flex gap-3">
             <Button type="button" variant="secondary" onClick={() => { setShowExpense(false); resetExp(); }} className="flex-1">Cancelar</Button>
-            <Button type="submit" loading={expenseMutation.isPending} className="flex-1">Crear</Button>
+            <Button type="submit" loading={expenseMutation.isPending} disabled={splitError !== null} className="flex-1">Crear</Button>
           </div>
         </form>
       </Modal>

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { GroupsRepository } from './groups.repository.js';
 import { UsersRepository } from '../users/users.repository.js';
+import { PushService } from '../push/push.service.js';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../shared/errors/app-error.js';
 import type { CreateGroupInput, UpdateGroupInput, InviteInput, CreateGroupExpenseInput, UpdateGroupExpenseInput } from './groups.schema.js';
 import type { GroupDto, GroupMemberDto, GroupExpenseDto } from './groups.dto.js';
@@ -17,6 +18,7 @@ function toGroupDto(g: Group, members: GroupMemberDto[] = []): GroupDto {
 export class GroupsService {
   private readonly repo = new GroupsRepository();
   private readonly usersRepo = new UsersRepository();
+  private readonly pushService = new PushService();
 
   async list(userId: string): Promise<GroupDto[]> {
     const gs = await this.repo.findAllByUser(userId);
@@ -147,12 +149,98 @@ export class GroupsService {
     }
 
     const payer = await this.usersRepo.findById(payerId);
+
+    // Fire-and-forget push notification to non-payer members; never block/break expense creation.
+    try {
+      for (const m of members) {
+        if (m.userId === payerId) continue;
+        void this.pushService.sendToUser(m.userId, {
+          title: `Nuevo gasto en ${g.name}`,
+          body: `${payer?.username ?? ''} agregó ${input.description}`,
+          url: `/groups/${groupId}`,
+        }).catch(() => undefined);
+      }
+    } catch {
+      // ignore push failures
+    }
+
     return {
       id: expense.id, groupId, payerId, payerUsername: payer?.username ?? '',
       amount: expense.amount, currency: expense.currency, description: expense.description,
       category: expense.category, paymentMethod: expense.paymentMethod, date: expense.date,
       notes: expense.notes, createdAt: expense.createdAt, splits,
     };
+  }
+
+  async simplifyDebts(groupId: string, requesterId: string): Promise<{ simplified: number; skippedCurrencies: string[] }> {
+    const g = await this.repo.findById(groupId);
+    if (!g) throw new NotFoundError('Group');
+    if (g.ownerId !== requesterId) throw new ForbiddenError('Only owner can simplify debts');
+
+    const groupDebts = await this.repo.getGroupDebts(groupId);
+
+    // Group non-paid debts by currency
+    const byCurrency = new Map<string, typeof groupDebts>();
+    for (const d of groupDebts) {
+      const bucket = byCurrency.get(d.currency) ?? [];
+      bucket.push(d);
+      byCurrency.set(d.currency, bucket);
+    }
+
+    // Determine which currencies have any settled debt BEFORE deleting anything;
+    // those currencies are skipped entirely (left untouched).
+    const settledDebtIds = new Set(await this.repo.findSettledDebtIds(groupId));
+    const skippedCurrencies = new Set<string>();
+    for (const d of groupDebts) {
+      if (settledDebtIds.has(d.id)) skippedCurrencies.add(d.currency);
+    }
+
+    // Only clear unsettled debts in currencies we will actually rebuild.
+    const currenciesToSimplify = new Set(
+      [...byCurrency.keys()].filter(c => !skippedCurrencies.has(c)),
+    );
+    await this.repo.clearUnsettledGroupDebts(groupId, currenciesToSimplify);
+
+    let simplified = 0;
+    for (const [currency, bucket] of byCurrency) {
+      // Only simplify currencies fully cleared (no debt with settlements).
+      if (skippedCurrencies.has(currency)) continue;
+
+      // Net per user: creditor +amount, debtor -amount
+      const net = new Map<string, number>();
+      for (const d of bucket) {
+        net.set(d.creditorId, (net.get(d.creditorId) ?? 0) + d.amount);
+        net.set(d.debtorId, (net.get(d.debtorId) ?? 0) - d.amount);
+      }
+
+      const creditors: { id: string; amount: number }[] = [];
+      const debtors: { id: string; amount: number }[] = [];
+      for (const [id, amount] of net) {
+        if (amount > 0.01) creditors.push({ id, amount });
+        else if (amount < -0.01) debtors.push({ id, amount: -amount });
+      }
+
+      // Greedy two-pointer minimal settlement
+      let i = 0;
+      let j = 0;
+      while (i < creditors.length && j < debtors.length) {
+        const creditor = creditors[i]!;
+        const debtor = debtors[j]!;
+        const pay = Math.min(creditor.amount, debtor.amount);
+        if (pay > 0.01) {
+          await this.repo.upsertDebt({
+            id: uuidv4(), groupId, creditorId: creditor.id, debtorId: debtor.id, amount: pay, currency,
+          });
+          simplified++;
+        }
+        creditor.amount -= pay;
+        debtor.amount -= pay;
+        if (creditor.amount <= 0.01) i++;
+        if (debtor.amount <= 0.01) j++;
+      }
+    }
+
+    return { simplified, skippedCurrencies: [...skippedCurrencies] };
   }
 
   async updateGroupExpense(groupId: string, expenseId: string, userId: string, input: UpdateGroupExpenseInput): Promise<GroupExpenseDto> {

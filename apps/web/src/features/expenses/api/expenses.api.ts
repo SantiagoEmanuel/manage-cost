@@ -20,6 +20,7 @@ export interface ExpenseFilters {
   paymentMethod?: string;
   from?: string;
   to?: string;
+  search?: string;
 }
 
 export const expensesApi = {
@@ -44,6 +45,10 @@ export const expensesApi = {
   },
   getStats: async () => {
     const res = await api.get<{ success: boolean; data: ExpenseStats }>('/expenses/stats');
+    return res.data.data;
+  },
+  getHistory: async (months = 6) => {
+    const res = await api.get<{ success: boolean; data: { month: string; total: number }[] }>('/expenses/history', { params: { months } });
     return res.data.data;
   },
 };

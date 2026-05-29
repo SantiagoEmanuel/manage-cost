@@ -64,6 +64,14 @@ export async function removeMember(req: Request, res: Response, next: NextFuncti
   } catch (err) { next(err); }
 }
 
+export async function simplifyDebts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { user } = req as AuthenticatedRequest;
+    const data = await service.simplifyDebts(param(req, 'id'), user.id);
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
+
 export async function listGroupExpenses(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { user } = req as AuthenticatedRequest;

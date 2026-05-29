@@ -89,6 +89,10 @@ export class ExpensesService {
     await this.repo.softDelete(id, userId);
   }
 
+  async getHistory(userId: string, months: number): Promise<{ month: string; total: number }[]> {
+    return this.repo.findMonthlyHistory(userId, months);
+  }
+
   async getStats(userId: string): Promise<ExpenseStatsDto> {
     const all = await this.repo.findAllByUser(userId);
     const now = new Date();

@@ -1,16 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { PageMeta } from '@/shared/components/PageMeta';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, CreditCard, Users, Plus, Wallet, Target, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, CreditCard, Users, Plus, Wallet, Target, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { expensesApi } from '@/features/expenses/api/expenses.api';
 import { settlementsApi } from '@/features/settlements/api/settlements.api';
 import { fixedExpensesApi } from '@/features/budget/api/fixed-expenses.api';
+import { categoryBudgetsApi } from '@/features/budget/api/category-budgets.api';
 import { api } from '@/shared/lib/api';
+import { queryClient } from '@/shared/lib/query-client';
 import { Card, CardHeader, CardTitle } from '@/shared/components/Card';
 import { Button } from '@/shared/components/Button';
 import { CardSkeleton } from '@/shared/components/SkeletonLoader';
+import { toast } from '@/shared/components/Toast';
 import { formatCurrency, formatDate } from '@/shared/lib/format';
+import { TrendChart } from './components/TrendChart';
 import type { User } from '@/shared/types';
 
 const CATEGORY_COLORS = [
@@ -78,6 +83,42 @@ export function DashboardPage() {
     queryKey: ['fixed-expenses'],
     queryFn: fixedExpensesApi.list,
   });
+
+  const { data: history } = useQuery({
+    queryKey: ['expenses', 'history', 6],
+    queryFn: () => expensesApi.getHistory(6),
+  });
+
+  const { data: budgets } = useQuery({
+    queryKey: ['category-budgets'],
+    queryFn: categoryBudgetsApi.list,
+  });
+
+  const applyMonthly = useMutation({
+    mutationFn: fixedExpensesApi.applyMonthly,
+    onSuccess: (data) => {
+      if (data.applied > 0) {
+        toast('success', `${data.applied} gastos fijos aplicados`);
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['expenses', 'stats'] });
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (sessionStorage.getItem('fixedApplied')) return;
+    sessionStorage.setItem('fixedApplied', '1');
+    applyMonthly.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const categoryRows = useMemo(() => {
+    const rows = stats?.byCategory ?? [];
+    return rows.map(c => {
+      const budget = budgets?.find(b => b.category === c.category);
+      return { ...c, limit: budget?.limitAmount };
+    });
+  }, [stats?.byCategory, budgets]);
 
   const salary = profile?.monthlyIncome ?? 0;
   const activeFixed = (fixedExpenses ?? []).filter(f => f.isActive);
@@ -212,6 +253,16 @@ export function DashboardPage() {
         )}
       </div>
 
+      {/* Trend chart */}
+      {(history?.length ?? 0) >= 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tendencia de gastos</CardTitle>
+          </CardHeader>
+          <TrendChart data={history!} currency={user?.currency} />
+        </Card>
+      )}
+
       {/* Recent expenses + category breakdown */}
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -247,26 +298,37 @@ export function DashboardPage() {
             <span className="text-xs text-slate-600">Este mes</span>
           </CardHeader>
           {statsLoading ? <CardSkeleton lines={4} /> : (
-            stats?.byCategory.length === 0 ? (
+            categoryRows.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-6">Sin datos</p>
             ) : (
               <div className="flex flex-col gap-3">
-                {stats?.byCategory.slice(0, 6).map((c, i) => (
-                  <div key={c.category}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400 capitalize flex items-center gap-1.5">
-                        <span>{categoryEmoji(c.category)}</span>{c.category}
-                      </span>
-                      <span className="text-slate-300 font-medium">{formatCurrency(c.total, user?.currency)}</span>
+                {categoryRows.slice(0, 6).map((c, i) => {
+                  const denom = c.limit && c.limit > 0 ? c.limit : (stats?.totalMonth || 1);
+                  const overLimit = c.limit !== undefined && c.total > c.limit;
+                  const nearLimit = c.limit !== undefined && c.total > c.limit * 0.8 && !overLimit;
+                  const barColor = overLimit ? 'bg-red-500' : nearLimit ? 'bg-amber-500' : CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+                  return (
+                    <div key={c.category}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-400 capitalize flex items-center gap-1.5">
+                          <span>{categoryEmoji(c.category)}</span>{c.category}
+                          {overLimit && <AlertCircle className="h-3 w-3 text-red-400" />}
+                          {nearLimit && <AlertCircle className="h-3 w-3 text-amber-400" />}
+                        </span>
+                        <span className="text-slate-300 font-medium">
+                          {formatCurrency(c.total, user?.currency)}
+                          {c.limit !== undefined && <span className="text-slate-600"> / {formatCurrency(c.limit, user?.currency)}</span>}
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-1.5">
+                        <div
+                          className={`${barColor} h-1.5 rounded-full`}
+                          style={{ width: `${Math.min(100, (c.total / denom) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-1.5">
-                      <div
-                        className={`${CATEGORY_COLORS[i % CATEGORY_COLORS.length]} h-1.5 rounded-full`}
-                        style={{ width: `${Math.min(100, (c.total / (stats.totalMonth || 1)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )
           )}

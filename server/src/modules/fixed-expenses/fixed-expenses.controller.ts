@@ -37,3 +37,11 @@ export async function remove(req: Request, res: Response, next: NextFunction): P
     res.json({ success: true });
   } catch (err) { next(err); }
 }
+
+export async function applyMonthly(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { user } = req as AuthenticatedRequest;
+    const data = await service.applyMonthly(user.id);
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+}
