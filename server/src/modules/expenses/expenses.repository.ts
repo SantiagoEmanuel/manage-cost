@@ -26,8 +26,8 @@ export class ExpensesRepository {
       .limit(query.limit)
       .offset(offset);
 
-    const [{ total }] = await db.select({ total: count() }).from(expenses).where(and(...conditions));
-    return { rows, total: total ?? 0 };
+    const countResult = await db.select({ total: count() }).from(expenses).where(and(...conditions));
+    return { rows, total: countResult[0]?.total ?? 0 };
   }
 
   findById(id: string, userId: string) {
