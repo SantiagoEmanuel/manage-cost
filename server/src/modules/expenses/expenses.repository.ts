@@ -1,4 +1,4 @@
-import { eq, and, isNull, gte, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, desc, sql, count } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { expenses, creditInstallments } from '../../db/schema/index.js';
 import type { NewExpense } from '../../db/schema/index.js';
@@ -26,8 +26,8 @@ export class ExpensesRepository {
       .limit(query.limit)
       .offset(offset);
 
-    const countRows = await db.select({ id: expenses.id }).from(expenses).where(and(...conditions));
-    return { rows, total: countRows.length };
+    const [{ total }] = await db.select({ total: count() }).from(expenses).where(and(...conditions));
+    return { rows, total: total ?? 0 };
   }
 
   findById(id: string, userId: string) {
@@ -63,7 +63,7 @@ export class ExpensesRepository {
 
   async findAllByUser(userId: string) {
     return db.select().from(expenses)
-      .where(and(eq(expenses.payerId, userId), isNull(expenses.deletedAt)));
+      .where(and(eq(expenses.payerId, userId), eq(expenses.isPersonal, true), isNull(expenses.deletedAt)));
   }
 
   async findMonthlyHistory(userId: string, months: number): Promise<{ month: string; total: number }[]> {

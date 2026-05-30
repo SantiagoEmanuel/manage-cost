@@ -364,10 +364,9 @@ export function DashboardPage() {
 
 function categoryEmoji(cat: string): string {
   const map: Record<string, string> = {
-    comida: '🍔', restaurante: '🍽️', transporte: '🚗', entretenimiento: '🎬',
-    salud: '💊', ropa: '👕', hogar: '🏠', tecnología: '💻', educación: '📚',
-    viajes: '✈️', deportes: '⚽', mascotas: '🐾', servicios: '💡', suscripciones: '📱',
-    general: '📦',
+    general: '📦', alimentación: '🍔', transporte: '🚗', vivienda: '🏠',
+    salud: '💊', educación: '📚', entretenimiento: '🎬', ropa: '👕',
+    tecnología: '💻', viaje: '✈️', deporte: '⚽', mascotas: '🐾', otro: '💸',
   };
   return map[cat.toLowerCase()] ?? '💸';
 }

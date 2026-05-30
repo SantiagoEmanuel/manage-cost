@@ -102,12 +102,14 @@ export class ExpensesService {
     const totalMonth = all.filter(e => e.date >= monthStart).reduce((s, e) => s + e.amount, 0);
     const totalYear = all.filter(e => e.date >= yearStart).reduce((s, e) => s + e.amount, 0);
 
+    const monthExpenses = all.filter(e => e.date >= monthStart);
+
     const byCategory = Object.entries(
-      all.reduce<Record<string, number>>((acc, e) => { acc[e.category] = (acc[e.category] ?? 0) + e.amount; return acc; }, {})
+      monthExpenses.reduce<Record<string, number>>((acc, e) => { acc[e.category] = (acc[e.category] ?? 0) + e.amount; return acc; }, {})
     ).map(([category, total]) => ({ category, total }));
 
     const byMethod = Object.entries(
-      all.reduce<Record<string, number>>((acc, e) => { acc[e.paymentMethod] = (acc[e.paymentMethod] ?? 0) + e.amount; return acc; }, {})
+      monthExpenses.reduce<Record<string, number>>((acc, e) => { acc[e.paymentMethod] = (acc[e.paymentMethod] ?? 0) + e.amount; return acc; }, {})
     ).map(([method, total]) => ({ method, total }));
 
     return { totalMonth, totalYear, byCategory, byMethod };
