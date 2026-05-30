@@ -93,7 +93,7 @@ export class GroupsRepository {
 
   async upsertDebt(data: { id: string; groupId: string; creditorId: string; debtorId: string; amount: number; currency: string }) {
     const existing = await db.query.debts.findFirst({
-      where: and(eq(debts.groupId, data.groupId), eq(debts.creditorId, data.creditorId), eq(debts.debtorId, data.debtorId)),
+      where: and(eq(debts.groupId, data.groupId), eq(debts.creditorId, data.creditorId), eq(debts.debtorId, data.debtorId), eq(debts.currency, data.currency)),
     });
     if (existing) {
       const newAmount = existing.amount + data.amount;
