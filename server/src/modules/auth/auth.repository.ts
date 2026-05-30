@@ -14,6 +14,10 @@ export class AuthRepository {
       where: and(eq(sessions.tokenHash, tokenHash), eq(sessions.isRevoked, false)),
     });
   }
+  /** Looks up a session by token hash regardless of its revoked state (used for reuse detection). */
+  findAnySessionByTokenHash(tokenHash: string) {
+    return db.query.sessions.findFirst({ where: eq(sessions.tokenHash, tokenHash) });
+  }
   async revokeSession(id: string) { await db.update(sessions).set({ isRevoked: true }).where(eq(sessions.id, id)); }
   async revokeAllUserSessions(userId: string) { await db.update(sessions).set({ isRevoked: true }).where(eq(sessions.userId, userId)); }
 }

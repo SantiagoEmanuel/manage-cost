@@ -87,8 +87,14 @@ export class AuthService {
 
   async refresh(rawRefreshToken: string, meta: TokenMeta): Promise<TokenPair> {
     const tokenHash = hashToken(rawRefreshToken);
-    const session = await this.repo.findSessionByTokenHash(tokenHash);
+    const session = await this.repo.findAnySessionByTokenHash(tokenHash);
     if (!session) throw new UnauthorizedError("Invalid session");
+    // Reuse attack detection: a presented token that was already rotated (revoked)
+    // signals the refresh token was leaked. Invalidate the whole session family.
+    if (session.isRevoked) {
+      await this.repo.revokeAllUserSessions(session.userId);
+      throw new UnauthorizedError("Session reuse detected");
+    }
     if (new Date(session.expiresAt) < new Date()) {
       await this.repo.revokeSession(session.id);
       throw new UnauthorizedError("Session expired");
